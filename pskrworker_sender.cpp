@@ -63,7 +63,7 @@ void appendRecordFormatDesc(std::vector<uint8_t>& buf) {
                      0x80, 0x0B, 0x00, 0x01, 0x00, 0x00, 0x76, 0x8F,
                      0x80, 0x03, 0xFF, 0xFF, 0x00, 0x00, 0x76, 0x8F,
                      0x00, 0x96, 0x00, 0x04 };
-    sz = sizeof(hdr) / sizeof(uint8_t);
+    sz = sizeof(hdr2) / sizeof(uint8_t);
 
     for (int i = 0; i < sz; i++)
         buf.push_back(hdr2[i]);
