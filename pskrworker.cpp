@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <string>
 #include <string.h>
+#include <sys/stat.h>
 
 pskrworker::pskrworker() {  // let's make socket
 
@@ -212,16 +213,17 @@ void pskrworker::run() {
             DIR *dp;
 
             dp = opendir(SPOOL_DIR);
-            if (dp == NULL) {
-                mylog("opendir: Spool path does not exist or could not be read.");
-                continue;
-            }
-
-            while ((entry = readdir(dp))) {
+            if (dp != NULL) {
+              while ((entry = readdir(dp))) {
                 std::string fn = std::string(SPOOL_DIR) + "/" + entry->d_name;
                 packetLoadAndSend(fn);
+              }
+              closedir(dp);
+            } else {
+              mylog("opendir: Spool path does not exist or could not be read.");
+              if (mkdir(SPOOL_DIR, 644))
+                mylog("Can't create spool path");
             }
-            closedir(dp);
 
 
         } else {

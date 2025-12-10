@@ -1,40 +1,15 @@
 #include "logger.h"
 #include <stdlib.h>
 #include <iostream>
-#include <boost/iterator/iterator_concepts.hpp>
+//#include <boost/iterator/iterator_concepts.hpp>
 #include <cxxabi.h>
 #include <execinfo.h>
 #include <string.h>
-#include <boost/thread.hpp>
+//#include <boost/thread.hpp>
 
 Logger *Logger::instance = 0;
 Logger::bitmask Logger::unregistered = 0;
 char *Logger::unregisteredname = (char *)"unregistered";
-
-
-// Specialized func to log configuration values. Filters out sensitive stuff.
-void LogCfgParm(int lvl, Logger::bitmask mymask, std::string where, std::string key, std::string value) {
-
-  // At the highest log level we want to see everything anyway
-  if (lvl < Logger::Lvl4) {
-
-    std::string upkey;
-    upkey.resize(key.length());
-    std::transform(key.begin(), key.end(), upkey.begin(), ::toupper);
-    //Log(Logger::Lvl4, mymask, where, " upkey: " << upkey);
-
-    if (upkey.find("PASSWORD") != std::string::npos) {
-
-      int n = value.length();
-      value = "";
-
-      for (int i = 0; i < n; i++) value += "*";
-    }
-  }
-
-
-  Log(lvl, mymask, where, " Key: " << key << " Value: " << value);
-}
 
 
 

@@ -12,6 +12,9 @@
 #include <fstream>
 #include <vector>
 
+
+#include "config.h"
+
 // Helper to append integer in network byte order:
 void appendUint32(std::vector<uint8_t>& buf, uint32_t value) {
     uint32_t v = htonl(value);
@@ -75,7 +78,7 @@ int pskrworker::addPskReporterSpot(
     ) {
     timestamp = timestamp ? timestamp : static_cast<uint32_t>(std::time(nullptr));
 
-
+    mylog(QString("Adding spot'") + txCall.c_str() + "'");
 
     // Placeholder for header (0x00, 0x0A,length, time, seq, sessionID)
     // Note that the atctual header content can only be set just before sending
@@ -152,21 +155,24 @@ int pskrworker::sendAllSpots() {
     // Overwrite header:...
     std::vector<uint8_t> hdr;
 
+    appendUint16(hdr, htons(0x0a00));
     appendUint16(hdr, totalLen); // Insert the final fields into the header
     appendUint32(hdr, time(0));
-    appendUint32(packet, seqNum);
-    appendUint32(packet, sessionID);
+    appendUint32(hdr, ++seqNum);
+    appendUint32(hdr, sessionID);
 
     for (ulong i = 0; i < hdr.size(); i++) {
-        packet[2 + i] = hdr[i];
+        packet[i] = hdr[i];
     }
 
     // UDP send
     struct addrinfo hints{}, *res;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_NUMERICSERV;
 
-    if (getaddrinfo("report.pskreporter.info", "4739", &hints, &res) != 0) {
+    if (getaddrinfo(CFG->GetString("pskreporter.host", (char*)"pskreporter.info").c_str(),
+                    CFG->GetString("pskreporter.port", (char*)"14739").c_str(), &hints, &res) != 0) {
         std::cerr << "DNS lookup failed\n";
         return -1;
     }
@@ -187,6 +193,34 @@ int pskrworker::sendAllSpots() {
         return -3;
     }
 
+    mylog(QString("UDP sent ") + QString::number(sent) + " bytes");
+
+    // Dump to a file
+    /* Write your buffer to disk. */
+    if (CFG->GetBool("pskreporter.dump", false)) {
+      char templ[] = "/tmp/sbitx-dumpXXXXXX";
+      int fd = mkstemp(templ);
+
+      if (fd > 0) {
+        int towrite = sent;  
+        while ( towrite > 0 ) {
+          int res = write(fd, packet.data(), sent);
+          if (res > 0) towrite -= res;
+          if ((res == EAGAIN) && (res == EINTR)) continue;
+          else {
+            mylog(QString("Error writing dump packet: ") + QString::number(errno) + strerror(errno));
+            break;
+          }
+
+        }
+      } else
+        mylog(QString("Error dumping packet: ") + QString::number(errno) + strerror(errno));
+     
+
+      close(fd);
+    }
+
+    mylog(QString("UDP sent ") + QString::number(sent) + " bytes");
     return 0;
 }
 

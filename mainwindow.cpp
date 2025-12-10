@@ -37,16 +37,26 @@ void MainWindow::on_pushButton_defaults_clicked()
 
     Logger::get()->setLevel((Logger::Level)CFG->GetLong("loglevel"));
     Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Restarting. loglevel is " << CFG->GetLong("loglevel"));
-    ui->lineEdit_telnethost->setText(CFG->GetString("net.sbitx-telnet-hostport", "localhost:4321").c_str());
-    ui->lineEdit_pskrepohost->setText(CFG->GetString("net.pskreporter-hostport", "empty").c_str());
+
+    std::string s = CFG->GetString("sbitx.telnethost", (char*)"localhost") + ':' + CFG->GetString("sbitx.telnetport", (char*)"4321");
+    ui->lineEdit_telnethost->setText(s.c_str());
+    ui->lineEdit_pskrepohost->setText(CFG->GetString("pskreporter.host", (char*)"empty").c_str());
 
     ui->plainTextEdit->appendPlainText("Starting...");
 
-    QUrl url(QUrl::fromUserInput(ui->lineEdit_telnethost->text()));
+    wrkthread.sbitx_host = CFG->GetString("sbitx.telnethost", (char*)"localhost").c_str();
+    wrkthread.sbitx_port = CFG->GetLong("sbitx.telnetport", 4321);
 
-    wrkthread.sbitx_host = url.host();
-    wrkthread.sbitx_port = url.port();
+    wrkthread.myCall = CFG->GetString("myspot.callsign", (char*)"").c_str();
+    wrkthread.myLocator = CFG->GetString("myspot.locator", (char*)"").c_str();
+    wrkthread.mySw = CFG->GetString("myspot.sw", (char*)"sBitx").c_str();
+    wrkthread.myAntinfo = CFG->GetString("myspot.antinfo", (char*)"").c_str();
 
+    if (!wrkthread.myCall.length() || !wrkthread.myLocator.length() ||
+        !wrkthread.mySw.length() || !wrkthread.myAntinfo.length()) {
+      ui->plainTextEdit->appendPlainText("Incomplete configuration.");
+      return;
+    }
     wrkthread.start();
 
     std::string fake( "{201845  35 +00 1678 ~  BI4IWL ON9DJ R-23}" );

@@ -8,6 +8,9 @@ CONFIG += c++17
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+
+
+CONFIG += debug
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
@@ -26,7 +29,8 @@ HEADERS += \
 FORMS += \
     mainwindow.ui
 
-LIBS += /usr/lib/x86_64-linux-gnu/libtelnet.so
+# LIBS += /usr/lib/x86_64-linux-gnu/libtelnet.so
+LIBS += /usr/lib/aarch64-linux-gnu/libtelnet.so
 PKGCONFIG += telnet
 
 # Default rules for deployment.
