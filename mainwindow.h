@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QDateTime>
 #include "pskrworker.h"
+#include "logger.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -22,7 +23,7 @@ public:
 
     pskrworker wrkthread;
 public slots:
-    void log(QString s);
+    void log(Logger::Level lvl, QString s);
 
 private slots:
 

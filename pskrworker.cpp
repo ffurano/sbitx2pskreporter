@@ -6,6 +6,7 @@
 #include <string>
 #include <string.h>
 #include <sys/stat.h>
+#include "logger.h"
 
 pskrworker::pskrworker() {  // let's make socket
 
@@ -40,7 +41,7 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
         // If the {} block is larger than 64 characters it's clearly an error. Abort the parsing
         int nn = pend-pstart-1;
         if (nn > 64) {
-            mylog(QString("Buffer overflow '") + QString(msg.c_str()) +  "'");
+            mylog(Logger::Lvl0, QString("Buffer overflow '") + QString(msg.c_str()) +  "'");
             return -1;
         }
         strncpy(buf, &msg[pstart+1], nn);
@@ -58,21 +59,21 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
         }
 
         if (tokens.size() < 4) {
-            mylog(QString("Invalid token count ") + QString::number(tokens.size()));
+            mylog(Logger::Lvl0, QString("Invalid token count ") + QString::number(tokens.size()));
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
             return -3;
         }
         int freq = atoi(tokens[3].c_str());
         if (freq <= 0) {
-            mylog(QString("Invalid freq '") + tokens[3].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
+            mylog(Logger::Lvl0, QString("Invalid freq '") + tokens[3].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
             return -2;
         }
         int snr = atoi(tokens[2].c_str());
         if ((snr < -50) || (snr > 20)) {
-            mylog(QString("Invalid snr '") + tokens[2].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
+            mylog(Logger::Lvl0, QString("Invalid snr '") + tokens[2].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
             return -3;
@@ -97,7 +98,7 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
 void pskrworker::run() {
 
 
-    mylog(QString("ciao"));
+    mylog(Logger::Lvl0, QString("ciao"));
 
     bool needmoredata = true;
     while (!interrupt) {
@@ -116,7 +117,7 @@ void pskrworker::run() {
                 connected = true;
             }
             else {
-                mylog(QString("Error connecting to sbitx ") + sbitx_host + ":" + QString::number(sbitx_port));
+                mylog(Logger::Lvl0, QString("Error connecting to sbitx ") + sbitx_host + ":" + QString::number(sbitx_port));
                 ::sleep(10);
                 continue;
             }
@@ -127,12 +128,12 @@ void pskrworker::run() {
             myresult r = sbitxread();
             if (r.code == -2) // Timeout, nothing happened
                 continue;
-            mylog(mReceivedMsg.c_str());
+            mylog(Logger::Lvl2, mReceivedMsg.c_str());
             // Treat various errors
             if (r.code) {
                 // Reading error. We disconnect/reconnect after a pause. Timeout is not an error
                 mReceivedMsg.clear();
-                mylog("Error reading from sbitx " + sbitx_host + ":" + QString::number(sbitx_port) + " - "  + r.msg);
+                mylog(Logger::Lvl0, "Error reading from sbitx " + sbitx_host + ":" + QString::number(sbitx_port) + " - "  + r.msg);
                 connected = false;
                 ::sleep(10);
                 continue;
@@ -204,7 +205,7 @@ void pskrworker::run() {
 
         // TODO: Send the packet to pskreporter, when it's sufficiently full or the timeout elapsed
         if (!this->sendAllSpots()) {
-            mylog("packet sent");
+            mylog(Logger::Lvl2, "packet sent");
 
             // Sending success? Then flush also the older packets that may have been stored in files in the spool directory
 
@@ -220,9 +221,9 @@ void pskrworker::run() {
               }
               closedir(dp);
             } else {
-              mylog("opendir: Spool path does not exist or could not be read.");
+              mylog(Logger::Lvl0, "opendir: Spool path does not exist or could not be read.");
               if (mkdir(SPOOL_DIR, 644))
-                mylog("Can't create spool path");
+                mylog(Logger::Lvl0, "Can't create spool path");
             }
 
 
@@ -254,17 +255,17 @@ int pskrworker::sbitxMakeConnection()
     addrHints.ai_flags = AI_NUMERICSERV;
     addrHints.ai_protocol = IPPROTO_TCP;
 
-    mylog("Connecting to sbitx " + host + ":" + port);
+    mylog(Logger::Lvl0, "Connecting to sbitx " + host + ":" + port);
 
     if ((retVal = getaddrinfo(host.toStdString().c_str(), port.toStdString().c_str(), &addrHints, &addrInfo)) != 0) {
-        mylog("getaddrinfo() failed: " + host + ":" + port + " " + gai_strerror(retVal));
+        mylog(Logger::Lvl0, "getaddrinfo() failed: " + host + ":" + port + " " + gai_strerror(retVal));
         mSockFd = 0;
         return(-1);
     }
 
     // create socket
     if ((mSockFd = socket(addrInfo->ai_family, addrInfo->ai_socktype, addrInfo->ai_protocol)) == -1) {
-        mylog("socket() failed: " + QString(strerror(errno)));
+        mylog(Logger::Lvl0, "socket() failed: " + QString(strerror(errno)));
         mSockFd = 0;
         return -2;
     }
@@ -274,7 +275,7 @@ int pskrworker::sbitxMakeConnection()
         auto error = QString(strerror(errno));
         close(mSockFd);
         mSockFd = 0;
-        mylog("connect() failed: " + error);
+        mylog(Logger::Lvl0, "connect() failed: " + error);
 
         return -3;
     }

@@ -19,8 +19,10 @@
 #include <QThread>
 #include <QDateTime>
 
+#include "logger.h"
 
-#define SPOOL_DIR "/var/spool/sbit2pskr"
+
+#define SPOOL_DIR "/tmp/sbit2pskr"
 
 class myresult {
 public:
@@ -50,7 +52,7 @@ public:
 
 
 
-#define mylog(s) emit log(s)
+#define mylog(l, s) emit log(l, s)
 
 
 
@@ -102,7 +104,7 @@ protected:
     int packetSpool();
     int packetLoadAndSend(std::string &fn);
 signals:
-    void log(QString line);
+    void log(Logger::Level lvl, QString line);
 
 private:
 

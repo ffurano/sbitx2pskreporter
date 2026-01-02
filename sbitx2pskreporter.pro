@@ -30,7 +30,11 @@ FORMS += \
     mainwindow.ui
 
 # LIBS += /usr/lib/x86_64-linux-gnu/libtelnet.so
-LIBS += /usr/lib/aarch64-linux-gnu/libtelnet.so
+#LIBS += /usr/lib/aarch64-linux-gnu/libtelnet.so
+#LIBS += /Users/fabrizio/Syncthing/fab/Park/sbitx2pskreporter-cpp/libtelnet/libtelnet.so
+LIBS += /Users/fabrizio/Syncthing/fab/Park/sbitx2pskreporter-cpp/libtelnet/liblibtelnet.a
+INCLUDEPATH += /Users/fabrizio/Syncthing/fab/Park/sbitx2pskreporter-cpp/libtelnet/
+
 PKGCONFIG += telnet
 
 # Default rules for deployment.

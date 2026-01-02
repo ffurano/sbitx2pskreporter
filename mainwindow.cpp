@@ -4,11 +4,11 @@
 #include "config.h"
 
 
-void MainWindow::log(QString s) {
+void MainWindow::log(Logger::Level lvl, QString s) {
     QDateTime dt = QDateTime::currentDateTime();
     QString currentDateTime = dt.toString("yyyyMMdd-HHmmss");
 
-    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, currentDateTime.toStdString() << " " << s.toStdString());
+    Log(lvl, Logger::unregistered, Logger::unregisteredname, currentDateTime.toStdString() << " " << s.toStdString());
     ui->plainTextEdit->appendPlainText(currentDateTime + " " + s);
 
 
@@ -34,6 +34,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_pushButton_defaults_clicked()
 {
     CFG->ProcessFile((char *)"/etc/sbitx2pskreporter.conf");
+    CFG->ProcessFile((char *)"./etc/sbitx2pskreporter.conf");
 
     Logger::get()->setLevel((Logger::Level)CFG->GetLong("loglevel"));
     Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Restarting. loglevel is " << CFG->GetLong("loglevel"));

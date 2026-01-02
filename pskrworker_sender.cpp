@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "pskrworker.h"
 #include "qobjectdefs.h"
 #include <sys/socket.h>
@@ -76,9 +77,9 @@ int pskrworker::addPskReporterSpot(
     uint32_t freqHz,
     int8_t snr, uint32_t timestamp
     ) {
-    timestamp = timestamp ? timestamp : static_cast<uint32_t>(std::time(nullptr));
+    timestamp = (timestamp ? timestamp : time(0));
 
-    mylog(QString("Adding spot'") + txCall.c_str() + "'");
+    mylog(Logger::Lvl1, QString("Adding spot'") + txCall.c_str() + "'");
 
     // Placeholder for header (0x00, 0x0A,length, time, seq, sessionID)
     // Note that the atctual header content can only be set just before sending
@@ -103,8 +104,8 @@ int pskrworker::addPskReporterSpot(
             record.resize(record.size() / 4 * 4 + 4); // padding to 4 bytes
         hdr.clear();
         appendUint32(hdr, record.size()); // Fill the missing part of the header
-        record[pos++] = hdr[0];
-        record[pos++] = hdr[1];
+        record[pos++] = hdr[2];
+        record[pos++] = hdr[3];
         packet.insert( packet.end(), record.begin(), record.end() );
 
     }
@@ -121,7 +122,7 @@ int pskrworker::addPskReporterSpot(
     record[pos++] = 0x99;
     record[pos++] = 0x93;
     appendStringField(record, txCall);
-    appendUint32(record, freqHz);
+    appendUint32(record, freqHz+14074000);
     record.push_back(static_cast<uint8_t>(snr));
     record.push_back(static_cast<uint8_t>(0)); //iMD
     appendStringField(record, "FT8");
@@ -132,8 +133,8 @@ int pskrworker::addPskReporterSpot(
         record.resize(record.size() / 4 * 4 + 4); // padding to 4 bytes
     hdr.clear();
     appendUint32(hdr, record.size()); // Fill the missing part of the header
-    record[pos++] = hdr[0];
-    record[pos++] = hdr[1];
+    record[pos++] = hdr[2];
+    record[pos++] = hdr[3];
     packet.insert( packet.end(), record.begin(), record.end() );
 
 
@@ -155,7 +156,7 @@ int pskrworker::sendAllSpots() {
     // Overwrite header:...
     std::vector<uint8_t> hdr;
 
-    appendUint16(hdr, htons(0x0a00));
+    appendUint16(hdr, 0x000a);
     appendUint16(hdr, totalLen); // Insert the final fields into the header
     appendUint32(hdr, time(0));
     appendUint32(hdr, ++seqNum);
@@ -167,6 +168,7 @@ int pskrworker::sendAllSpots() {
 
     // UDP send
     struct addrinfo hints{}, *res;
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_NUMERICSERV;
@@ -184,16 +186,19 @@ int pskrworker::sendAllSpots() {
         return -2;
     }
 
+
     ssize_t sent = sendto(sock, packet.data(), packet.size(), 0, res->ai_addr, res->ai_addrlen);
+
     close(sock);
     freeaddrinfo(res);
 
     if (sent < 0) {
-        std::cerr << "sendto failed\n";
-        return -3;
+      mylog(Logger::Lvl0, QString("sendto failed: ") + QString::number(errno) + strerror(errno));
+      return -3;
     }
 
-    mylog(QString("UDP sent ") + QString::number(sent) + " bytes");
+
+    mylog(Logger::Lvl2, QString("UDP sent ") + QString::number(sent) + " bytes");
 
     // Dump to a file
     /* Write your buffer to disk. */
@@ -202,25 +207,30 @@ int pskrworker::sendAllSpots() {
       int fd = mkstemp(templ);
 
       if (fd > 0) {
-        int towrite = sent;  
+        int towrite = sent;
+        int written = 0;
         while ( towrite > 0 ) {
-          int res = write(fd, packet.data(), sent);
-          if (res > 0) towrite -= res;
-          if ((res == EAGAIN) && (res == EINTR)) continue;
-          else {
-            mylog(QString("Error writing dump packet: ") + QString::number(errno) + strerror(errno));
-            break;
+          int res = write(fd, packet.data()+written, towrite);
+          if (res > 0) {
+              towrite -= res;
+              written += res;
+          }
+          if (res <= 0) {
+            if ((errno == EAGAIN) || (errno == EINTR)) continue;
+            else {
+              mylog(Logger::Lvl0, QString("Error writing dump packet: ") + QString::number(errno) + strerror(errno));
+              break;
+            }
           }
 
         }
       } else
-        mylog(QString("Error dumping packet: ") + QString::number(errno) + strerror(errno));
+        mylog(Logger::Lvl0, QString("Error dumping packet: ") + QString::number(errno) + strerror(errno));
      
 
       close(fd);
     }
 
-    mylog(QString("UDP sent ") + QString::number(sent) + " bytes");
     return 0;
 }
 
@@ -233,7 +243,7 @@ int pskrworker::packetLoadAndSend(std::string &fn) {
     ifs.read((char *)&sz, sizeof(sz));
 
     if (sz > 65535 || sz <= 0)
-        mylog(QString("Wrong file length fn'") + fn.c_str() + "'");
+        mylog(Logger::Lvl0, QString("Wrong file length fn'") + fn.c_str() + "'");
 
     packet.resize(sz);
     if (!ifs.read(reinterpret_cast<std::ifstream::char_type*>(&packet.front()), sz) ) {
@@ -241,7 +251,7 @@ int pskrworker::packetLoadAndSend(std::string &fn) {
         std::remove(fn.c_str());
         packet.clear();
 
-        mylog(QString("Error reading spool file '") + fn.c_str() + "'");
+        mylog(Logger::Lvl0, QString("Error reading spool file '") + fn.c_str() + "'");
         return -1;
     }
 
@@ -250,7 +260,7 @@ int pskrworker::packetLoadAndSend(std::string &fn) {
         ifs.close();
         std::remove(fn.c_str());
         packet.clear();
-        mylog(QString("Successfully sent older spool file '") + fn.c_str() + "'");
+        mylog(Logger::Lvl0, QString("Successfully sent older spool file '") + fn.c_str() + "'");
         return 0;
     }
 
@@ -272,5 +282,6 @@ int pskrworker::packetSpool() {
 
     return 0;
 }
+
 
 
