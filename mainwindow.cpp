@@ -34,7 +34,6 @@ MainWindow::~MainWindow()
 void MainWindow::on_pushButton_defaults_clicked()
 {
     CFG->ProcessFile((char *)"/etc/sbitx2pskreporter.conf");
-    CFG->ProcessFile((char *)"./etc/sbitx2pskreporter.conf");
 
     Logger::get()->setLevel((Logger::Level)CFG->GetLong("loglevel"));
     Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Restarting. loglevel is " << CFG->GetLong("loglevel"));
@@ -60,8 +59,7 @@ void MainWindow::on_pushButton_defaults_clicked()
     }
     wrkthread.start();
 
-    std::string fake( "{201845  35 +00 1678 ~  BI4IWL ON9DJ R-23}" );
-    wrkthread.parseOneReport(fake, fake.length()-1, 0);
+
 }
 
 void MainWindow::on_pushButton_about_clicked()

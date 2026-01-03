@@ -122,7 +122,7 @@ int pskrworker::addPskReporterSpot(
     record[pos++] = 0x99;
     record[pos++] = 0x93;
     appendStringField(record, txCall);
-    appendUint32(record, freqHz+14074000);
+    appendUint32(record, freqHz+myFreq);
     record.push_back(static_cast<uint8_t>(snr));
     record.push_back(static_cast<uint8_t>(0)); //iMD
     appendStringField(record, "FT8");
@@ -264,6 +264,7 @@ int pskrworker::packetLoadAndSend(std::string &fn) {
         return 0;
     }
 
+    packet.clear();
     return -2;
 }
 

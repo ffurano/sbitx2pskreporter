@@ -116,6 +116,8 @@ private:
     struct timeval mTimeout;
     telnet_t * mTelnet;
 
+    int myFreq;
+    time_t mLastreport_t;
 
     static void trampoline(
         telnet_t * telnet,

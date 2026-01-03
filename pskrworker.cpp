@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include "logger.h"
+#include <stdlib.h>
 
 pskrworker::pskrworker() {  // let's make socket
 
@@ -24,6 +25,8 @@ pskrworker::pskrworker() {  // let's make socket
     interrupt = false;
 
     seqNum = 1;
+    myFreq = 0;
+    mLastreport_t = time(0);
 }
 
 
@@ -58,6 +61,16 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
             token = strtok(NULL, " ");
         }
 
+        // This may be the response to a frequency enquiry. We must set our base freq with it
+        if (tokens.size() == 2 && tokens[0] == "freq:") {
+            myFreq = atoi(tokens[1].c_str());
+            mylog(Logger::Lvl0, QString("Setting base frequency ") + QString::number(myFreq));
+            // Now delete the processed part from the beginning
+            msg.erase(0, pend+1);
+            // Remember the time of the last report
+            mLastreport_t = time(0);
+            return 0;
+        }
         if (tokens.size() < 4) {
             mylog(Logger::Lvl0, QString("Invalid token count ") + QString::number(tokens.size()));
             // Now delete the processed part from the beginning
@@ -91,6 +104,11 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
         // Now delete the processed part from the beginning
         msg.erase(0, pend+1);
 
+        // Remember the time of the last report
+        mLastreport_t = time(0);
+
+
+
         return 0;
 }
 
@@ -110,9 +128,8 @@ void pskrworker::run() {
 
             // Let's connect to the sbitx via telnet
             if (!sbitxMakeConnection()) {
-                // Check if we have unsent buffers stored
-
-
+                // Ask the sbitx what is the current base frequency
+                sbitxcommand("freq ?");
 
                 connected = true;
             }
@@ -125,6 +142,12 @@ void pskrworker::run() {
 
         // Wait for some message to come from the telnet conn. There is a reasonable timeout
         if (needmoredata) {
+            time_t t = time(0);
+            if (t - mLastreport_t > 2) {
+                // Ask again the sbitx what is the current base frequency
+                sbitxcommand("freq ?");
+            }
+
             myresult r = sbitxread();
             if (r.code == -2) // Timeout, nothing happened
                 continue;
@@ -216,14 +239,17 @@ void pskrworker::run() {
             dp = opendir(SPOOL_DIR);
             if (dp != NULL) {
               while ((entry = readdir(dp))) {
+                    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+                      continue;
                 std::string fn = std::string(SPOOL_DIR) + "/" + entry->d_name;
                 packetLoadAndSend(fn);
               }
               closedir(dp);
             } else {
               mylog(Logger::Lvl0, "opendir: Spool path does not exist or could not be read.");
-              if (mkdir(SPOOL_DIR, 644))
-                mylog(Logger::Lvl0, "Can't create spool path");
+              int r = mkdir(SPOOL_DIR, 0755);
+              if (r && r != EEXIST)
+                  mylog(Logger::Lvl0, QString("Can't create spool path ") + QString(strerror(errno)));
             }
 
 
