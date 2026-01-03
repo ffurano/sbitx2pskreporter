@@ -28,6 +28,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    wrkthread.interrupt = true;
+    wrkthread.wait();
     delete ui;
 }
 

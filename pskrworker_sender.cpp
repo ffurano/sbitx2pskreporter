@@ -79,6 +79,8 @@ int pskrworker::addPskReporterSpot(
     ) {
     timestamp = (timestamp ? timestamp : time(0));
 
+    if (txCall == "<...>") return 0;
+
     mylog(Logger::Lvl1, QString("Adding spot'") + txCall.c_str() + "'");
 
     // Placeholder for header (0x00, 0x0A,length, time, seq, sessionID)
@@ -146,8 +148,6 @@ int pskrworker::addPskReporterSpot(
 // We send the packet
 int pskrworker::sendAllSpots() {
 
-    if (!packet.size())
-        return 0;
 
     // Now we can fill the initial global header... FIXME
     uint16_t totalLen = packet.size();

@@ -63,8 +63,11 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
 
         // This may be the response to a frequency enquiry. We must set our base freq with it
         if (tokens.size() == 2 && tokens[0] == "freq:") {
-            myFreq = atoi(tokens[1].c_str());
-            mylog(Logger::Lvl0, QString("Setting base frequency ") + QString::number(myFreq));
+            int frq = atoi(tokens[1].c_str());
+            if (frq != myFreq) {
+              myFreq = frq;
+              mylog(Logger::Lvl0, QString("Changing base frequency ") + QString::number(myFreq));
+            }
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
             // Remember the time of the last report
@@ -79,7 +82,7 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
         }
         int freq = atoi(tokens[3].c_str());
         if (freq <= 0) {
-            mylog(Logger::Lvl0, QString("Invalid freq '") + tokens[3].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
+            mylog(Logger::Lvl0, QString("Invalid ft8 freq '") + tokens[3].c_str() + "' buf: '" + QString(msg.c_str()) +  "'");
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
             return -2;
@@ -115,9 +118,6 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
 // The main loop of the reader thread
 void pskrworker::run() {
 
-
-    mylog(Logger::Lvl0, QString("ciao"));
-
     bool needmoredata = true;
     while (!interrupt) {
         if (!connected) {
@@ -129,12 +129,14 @@ void pskrworker::run() {
             // Let's connect to the sbitx via telnet
             if (!sbitxMakeConnection()) {
                 // Ask the sbitx what is the current base frequency
+                mReceivedMsg.clear();
                 sbitxcommand("freq ?");
-
                 connected = true;
+                needmoredata = true;
             }
             else {
                 mylog(Logger::Lvl0, QString("Error connecting to sbitx ") + sbitx_host + ":" + QString::number(sbitx_port));
+                mReceivedMsg.clear();
                 ::sleep(10);
                 continue;
             }
@@ -151,7 +153,7 @@ void pskrworker::run() {
             myresult r = sbitxread();
             if (r.code == -2) // Timeout, nothing happened
                 continue;
-            mylog(Logger::Lvl2, mReceivedMsg.c_str());
+            //mylog(Logger::Lvl2, mReceivedMsg.c_str());
             // Treat various errors
             if (r.code) {
                 // Reading error. We disconnect/reconnect after a pause. Timeout is not an error
@@ -195,6 +197,7 @@ void pskrworker::run() {
                 break;
             }
 
+
             // Parse. Does it look like an FT8 report? Loop through the entries and add them
             // Example ft8 report from telnet:
             // {201845  35 +00 1678 ~  BI4IWL ON9DJ R-23
@@ -223,42 +226,48 @@ void pskrworker::run() {
             // }
 
             // NB This also deletes the processed message from the beginning of the string
-            if (parseOneReport(mReceivedMsg, pend, pstart) < 0) break;
+            if (parseOneReport(mReceivedMsg, pend, pstart) < 0) {
+                needmoredata = true;
+                mReceivedMsg.clear();
+                break;
+            }
         }
 
         // TODO: Send the packet to pskreporter, when it's sufficiently full or the timeout elapsed
-        if (!this->sendAllSpots()) {
-            mylog(Logger::Lvl2, "packet sent");
+        time_t t = time(0);
+        if ((t - mLastreport_t > 30) || (packet.size() > 512)) {
 
-            // Sending success? Then flush also the older packets that may have been stored in files in the spool directory
+            if (!this->sendAllSpots()) {
 
-            // Loop across files in the spool dir
-            struct dirent *entry;
-            DIR *dp;
+                // Sending success? Then flush also the older packets that may have been stored in files in the spool directory
 
-            dp = opendir(SPOOL_DIR);
-            if (dp != NULL) {
-              while ((entry = readdir(dp))) {
-                    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-                      continue;
-                std::string fn = std::string(SPOOL_DIR) + "/" + entry->d_name;
-                packetLoadAndSend(fn);
-              }
-              closedir(dp);
+                // Loop across files in the spool dir
+                struct dirent *entry;
+                DIR *dp;
+
+                dp = opendir(SPOOL_DIR);
+                if (dp != NULL) {
+                    while ((entry = readdir(dp))) {
+                        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+                            continue;
+                        std::string fn = std::string(SPOOL_DIR) + "/" + entry->d_name;
+                        packetLoadAndSend(fn);
+                    }
+                    closedir(dp);
+                } else {
+                    mylog(Logger::Lvl0, "opendir: Spool path does not exist or could not be read.");
+                    int r = mkdir(SPOOL_DIR, 0755);
+                    if (r && r != EEXIST)
+                        mylog(Logger::Lvl0, QString("Can't create spool path ") + QString(strerror(errno)));
+                }
+
+
             } else {
-              mylog(Logger::Lvl0, "opendir: Spool path does not exist or could not be read.");
-              int r = mkdir(SPOOL_DIR, 0755);
-              if (r && r != EEXIST)
-                  mylog(Logger::Lvl0, QString("Can't create spool path ") + QString(strerror(errno)));
+                // Otherwise save packet to a new spool file, hoping for better times ahead
+                this->packetSpool();
             }
-
-
-        } else {
-            // Otherwise save packet to a new spool file, hoping for better times ahead
-            this->packetSpool();
-        }
-        packet.clear();
-
+            packet.clear();
+    }
 
 
 
