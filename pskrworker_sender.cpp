@@ -298,7 +298,10 @@ int pskrworker::packetSpool() {
     std::ofstream of;
 
 
-    std::string fn = SPOOL_DIR + std::to_string(time(0)) + ".report";
+    std::string fn = SPOOL_DIR;
+    fn += "/";
+    fn += std::to_string(time(0));
+    fn += ".report";
     of.open(fn, std::ios::out|std::ios::binary);
 
     int32_t sz = packet.size();
