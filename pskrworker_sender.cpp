@@ -257,6 +257,9 @@ int pskrworker::sendAllSpots() {
 
 
 int pskrworker::packetLoadAndSend(std::string &fn) {
+
+    mylog(Logger::Lvl0, "Loading spool file '" << fn.c_str() << "'");
+
     std::ifstream ifs;
     ifs.open(fn, std::ios::in|std::ios::binary);
 
@@ -291,6 +294,7 @@ int pskrworker::packetLoadAndSend(std::string &fn) {
 
 int pskrworker::packetSpool() {
     // Save the packet into the spool directory
+
     std::ofstream of;
 
 
@@ -301,7 +305,7 @@ int pskrworker::packetSpool() {
     of.write((char *)&sz, sizeof(sz));
     of.write((char *)packet.data(), packet.size());
     of.close();
-    mylog(Logger::Lvl0, "Written spool file '" << fn.c_str() << "'");
+    mylog(Logger::Lvl0, "Written spool file '" << fn.c_str() << "' sz: " << sz);
 
     return 0;
 }
