@@ -81,7 +81,7 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
             return -3;
         }
         int freq = atoi(tokens[3].c_str());
-        if (freq <= 0) {
+        if ((freq <= 0) || (freq > 5000)) {
             mylog(Logger::Lvl0, "Invalid ft8 freq '" << tokens[3] << "' buf: '" << msg << "'");
             // Now delete the processed part from the beginning
             msg.erase(0, pend+1);
@@ -97,11 +97,12 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
 
         // OK, here we have the tokens of the FT8 message
         if (tokens[5] == "CQ") {
-            // We must also support calls like CQ POTA, hence the callsign is not necessarily the 5th position!
+            // We must also support calls like CQ POTA, hence the callsign is not necessarily the 6th position!
             this->addPskReporterSpot(tokens[tokens.size()-2], tokens[tokens.size()-1], freq, snr, time(0));
         }
         else {
-            if (tokens[6] != this->myCall)
+            // Avoid adding ourself
+            if ( strcasecmp(tokens[6].c_str(), this->myCall.toStdString().c_str()) )
               this->addPskReporterSpot(tokens[6], "", freq, snr, time(0));
         }
 
@@ -110,8 +111,6 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
 
         // Remember the time of the last report
         mLastreport_t = time(0);
-
-
 
         return 0;
 }
