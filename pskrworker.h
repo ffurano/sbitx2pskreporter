@@ -22,7 +22,7 @@
 #include "logger.h"
 
 
-#define SPOOL_DIR "/tmp/sbit2pskr"
+#define SPOOL_DIR "/tmp/sbitx2pskr"
 
 class myresult {
 public:
