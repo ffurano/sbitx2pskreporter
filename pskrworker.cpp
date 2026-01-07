@@ -96,14 +96,20 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
         }
 
         // OK, here we have the tokens of the FT8 message
-        if (tokens[5] == "CQ") {
-            // We must also support calls like CQ POTA, hence the callsign is not necessarily the 6th position!
-            this->addPskReporterSpot(tokens[tokens.size()-2], tokens[tokens.size()-1], freq, snr, time(0));
+        if (tokens[4] == "CQ") {
+            // We must also support calls like CQ POTA, hence the callsign is not necessarily the 5th position
+            // Since the number of tokens in a CQ is very variable, we just do our best to detect known CQ decorations
+            //this->addPskReporterSpot(tokens[tokens.size()-2], tokens[tokens.size()-1], freq, snr, time(0));
+            if ( (tokens[5] == "POTA") || (tokens[5] == "SOTA") || (tokens[5] == "IOTA") || (tokens[5] == "YOTA") ||
+                (tokens[5].size() <= 3) )
+                this->addPskReporterSpot(tokens[5], tokens[6], freq, snr, time(0));
+            else
+                this->addPskReporterSpot(tokens[5], tokens[6], freq, snr, time(0));
         }
         else {
             // Avoid adding ourself
-            if ( strcasecmp(tokens[6].c_str(), this->myCall.toStdString().c_str()) )
-              this->addPskReporterSpot(tokens[6], "", freq, snr, time(0));
+            if ( strcasecmp(tokens[5].c_str(), this->myCall.toStdString().c_str()) )
+              this->addPskReporterSpot(tokens[5], "", freq, snr, time(0));
         }
 
         // Now delete the processed part from the beginning
@@ -225,6 +231,26 @@ void pskrworker::run() {
             // }{201845  19 -03 747  ~  VU2LMO PA7HPH JO22
             // }{201845  17 -08 694  ~  S21IM OE1TRB JN88
             // }{201845  14 -01 1544 ~  BG5JGG DL7UKA JO50
+            // }
+
+            // NOTE: the format changed in version 3.5
+            // {194615    31 -03 2488 II6WWA EA4LX RR73
+            // }{194615    30 -07 1634 CQ CS26REP Portugal 1443 243°
+            // }{194615    29 -07  519 OD5KU EA7LGO IM67
+            // }{194615    29 -05  241 UP7WWA US1EA KN78
+            // }{194615    29 -10 1409 SO3WWA CT1EEX R-07
+            // }{194615    28 -09 1544 EM0WWA TA3CKY R-25
+            // }{194615    28 -12  663 PD0GD IT9JQN -10
+            // }{194615    27 -03 2553 9M8WWA RZ6L KN97
+            // }{194615    25 -04  397 BI4SSB UR3QZ R-04
+            // }{194615    25 -02 2347 HS0ZOY SV1SJJ KM17
+            // }{194615    24 -03  856 BI4SSB RC5F KO85
+            // }{194615    24 -09 2091 CT3IQ E2WWA -21
+            // }{194615    23 -05 2391 BI6PWL JA4FKX -02
+            // }{194615    23 -09 1359 BD6IIC R6OQ -17
+            // }{194615    22 -11 1931 EA1FE SV4LGX -20
+            // }{194615    22 -04 1194 CQ BH4UTT PM02 China 9025 51°
+            // }{194615    19 -10 2134 8Q7PR UT7AM KO70
             // }
 
             // NB This also deletes the processed message from the beginning of the string
