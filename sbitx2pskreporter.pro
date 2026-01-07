@@ -51,3 +51,7 @@ macx: DEPENDPATH += $$PWD/../libtelnet
 # Install the config file
 cfg.path = /etc
 cfg.files = etc/*
+
+target.path = /usr/local/bin/sbitx2pskreporter
+INSTALLS += target
+INSTALLS += cfg
