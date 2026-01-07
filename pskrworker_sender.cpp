@@ -80,6 +80,7 @@ int pskrworker::addPskReporterSpot(
     timestamp = (timestamp ? timestamp : time(0));
 
     if (txCall == "<...>") return 0;
+    if (txCall.size() <= 2) return 0;
 
     mylog(Logger::Lvl1, "Adding spot '" << txCall << "'");
 
