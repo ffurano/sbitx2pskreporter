@@ -25,5 +25,8 @@ is available again (e.g. when coming back home and switching on the agent on the
  - Edit the configuration file and write down your callsign/locator/antenna
  - run the application in your sbitx
  - use the sbitx radio in ft8 mode. The decoded spots will be sent to PSKReporter
+
+ IMPORTANT NOTE: As of 07 Jan 2026 this application needs a small addition to the sbitx code
+ that is not yet in the repository. Let's fix this.
  
  Author: Fabrizio Furano, 2025
