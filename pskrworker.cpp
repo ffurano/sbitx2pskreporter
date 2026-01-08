@@ -86,6 +86,12 @@ int pskrworker::parseOneReport(std::string &msg, int pend, int pstart)
             msg.erase(0, pend+1);
             return -3;
         }
+	if (tokens[0] == "Logged:") {
+            mylog(Logger::Lvl4,"Log Message, skipping " << pend+1 << " chars");
+            // Now delete the processed part from the beginning
+            msg.erase(0, pend+1);
+            return -3;
+        }
         int freq = atoi(tokens[3].c_str());
         if ((freq <= 0) || (freq > 5000)) {
             mylog(Logger::Lvl0, "Invalid ft8 freq '" << tokens[3] << "' buf: '" << msg << "'");
