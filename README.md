@@ -19,7 +19,8 @@ is available again (e.g. when coming back home and switching on the agent on the
  - qt6
  - libtelnet2
  - libtelnet-devel
-   
+
+ Then:
  - $ qmake6 ./sbitx2pskreporter.pro
  - $ make
  - $ sudo make install
