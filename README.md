@@ -10,15 +10,19 @@ This is an agent that:
 the packets will be stored in a spool area and sent when the network
 is available again (e.g. when coming back home and switching on the agent on the radio)
 
+<img width="482" height="311" alt="sbitx2pskreporter" src="https://github.com/user-attachments/assets/ac81d771-9ce5-44f7-a277-5d31c8cebbdb" />
+
+
+
  How to build:
  Make sure that you have installed
  - qt6
  - libtelnet2
  - libtelnet-devel
    
- $ qmake6 ./sbitx2pskreporter.pro
- $ make
- $ sudo make install
+ - $ qmake6 ./sbitx2pskreporter.pro
+ - $ make
+ - $ sudo make install
 
  How to use:
 
