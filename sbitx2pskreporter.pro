@@ -53,4 +53,4 @@ cfg.path = /etc
 cfg.files = etc/*
 
 target.path = /usr/local/bin/sbitx2pskreporter
-INSTALLS += target cfg
+INSTALLS += cfg
